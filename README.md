@@ -8,7 +8,8 @@
 
 ### Buat Topologi
 
-# Konfigurasi 
+# Nomer 1
+## Konfigurasi 
 
 ## Paradis (Router/DHCP Relay)
 
