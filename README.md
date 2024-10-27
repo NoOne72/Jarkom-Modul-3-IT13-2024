@@ -9,6 +9,7 @@
 ### Buat Topologi
 
 # 0 
+
 ## Fritz (DNS Server) 
 - Mengaktifkan Akses Internet
 ```
