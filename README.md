@@ -8,7 +8,7 @@
 
 ### Buat Topologi
 
-# 0 
+# Nomer 0 
 
 ## Fritz (DNS Server) 
 - Mengaktifkan Akses Internet
@@ -36,7 +36,7 @@ zone "marley.it13.com" {
 ```
 - Buat Direktori `/etc/bind/it13 directory`
 ```
-mkdir -p /etc/bind/it22
+mkdir -p /etc/bind/it13
 ```
 - Lakukan Perubahan Pada DNS Record
 ```
