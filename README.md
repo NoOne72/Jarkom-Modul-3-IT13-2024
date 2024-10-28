@@ -271,3 +271,143 @@ options {
         listen-on-v6 { any; };
 };' > /etc/bind/named.conf.options
 ```
+# Nomer 6 
+- Lakukan Persiapan untuk php dan nginx
+```
+service nginx start
+service php7.3-fpm start
+```
+- Buat direktori `/var/www/eldia.it13.com`
+- Konfigurasi PHP Worker
+```
+service nginx start
+service php7.3-fpm start
+
+mkdir -p /var/www/eldia.it13.com
+
+wget --no-check-certificate 'https://drive.google.com/uc?export=download&id=1TvebIeMQjRjFURKVtA32lO9aL7U2msd6' -O /root/bangsaEldia.zip
+unzip -o /root/bangsaEldia.zip -d /var/www/eldia.it13.com
+
+cp /etc/nginx/sites-available/default /etc/nginx/sites-available/eldia.it13.com
+ln -s /etc/nginx/sites-available/eldia.it13.com /etc/nginx/sites-enabled/
+rm /etc/nginx/sites-enabled/default
+
+echo '
+server {
+  listen 80;
+  listen [::]:80;
+
+  root /var/www/eldia.it13.com;
+  index index.php index.html index.htm;
+
+  server_name eldia.it13.com;
+
+  location / {
+    try_files $uri $uri/ =404;
+  }
+
+  location ~ \.php$ {
+    include snippets/fastcgi-php.conf;
+    fastcgi_pass unix:/var/run/php/php7.3-fpm.sock;
+  }
+
+  location ~ /\.ht {
+    deny all;
+  }
+}' > /etc/nginx/sites-available/eldia.it13.com
+```
+- Lakukan restart pada nginx `service nginx restart`
+# Nomer 7 
+- Lakukan Perubahan pada `cp /etc/nginx/sites-available/default /etc/nginx/sites-available/lb_php`
+## Colossal (Load Balancer) 
+```
+echo ' upstream worker {
+        #least_conn;
+        #ip_hash;
+    server 192.245.2.2;
+    server 192.245.2.3;
+    server 192.245.2.4;
+}
+
+server {
+    listen 80;
+    server_name eldia.it24.com www.eldia.it24.com;
+
+    root /var/www/html;
+
+    index index.html index.htm index.nginx-debian.html index.php;
+
+    server_name _;
+
+    location / {
+        proxy_pass http://worker;
+    }
+} ' > /etc/nginx/sites-available/lb_php
+
+ln -s /etc/nginx/sites-available/lb_php /etc/nginx/sites-enabled/
+rm /etc/nginx/sites-enabled/default
+```
+- Lakukan Restart pada nginx `service nginx restart`
+## Fritz (DNS Server) 
+Untuk menggunakan Colossal sebagai load balancer sesuai perintah soal 
+```
+echo 'zone "marley.it13.com" {
+    type master;
+    file "/etc/bind/sites/marley.it13.com";
+};
+zone "eldia.it13.com" {
+    type master;
+    file "/etc/bind/sites/eldia.it13.com";
+};' > /etc/bind/named.conf.local
+
+mkdir -p /etc/bind/sites
+cp /etc/bind/db.local /etc/bind/sites/marley.it13.com
+cp /etc/bind/db.local /etc/bind/sites/eldia.it13.com
+
+echo ';
+; BIND data file for local loopback interface
+;
+$TTL    604800
+@       IN      SOA     marley.it13.com. root.marley.it13.com. (
+                        2024102301      ; Serial
+                        604800         ; Refresh
+                        86400         ; Retry
+                        2419200         ; Expire
+                        604800 )       ; Negative Cache TTL
+;
+@       IN      NS      marley.it13.com.
+@       IN      A       10.70.1.2    ; IP Annie
+www     IN      CNAME   marley.it13.com.' > /etc/bind/sites/marley.it13.com
+
+echo ';
+; BIND data file for local loopback interface
+;
+$TTL    604800
+@       IN      SOA     eldia.it13.com. root.eldia.it13.com. (
+                            2024102301         ; Serial
+                            604800              ; Refresh
+                            86400              ; Retry
+                            2419200              ; Expire
+                            604800 )            ; Negative Cache TTL
+;
+@       IN      NS      eldia.it13.com.
+@       IN      A       10.70.3.3    ; IP Colossal
+www     IN      CNAME   eldia.it13.com.' > /etc/bind/sites/eldia.it13.com
+
+echo 'options {
+    directory "/var/cache/bind";
+
+    forwarders {
+        192.168.122.1;
+    };
+
+    // dnssec-validation auto;
+
+    allow-query { any; };
+    auth-nxdomain no;    # conform to RFC1035
+    listen-on-v6 { any; };
+};' > /etc/bind/named.conf.options
+
+```
+- Lakukan Restart pada bind9 `service bind9 restart`
+
